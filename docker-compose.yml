@@ -1,0 +1,46 @@
+version: '2.0'
+services:
+  worker1:
+    build:
+      context: .
+      dockerfile: Dockerfile.worker
+    container_name: worker1
+    networks:
+      - my_network
+
+
+
+  worker2:
+    build:
+      context: .
+      dockerfile: Dockerfile.worker
+    container_name: worker2
+    networks:
+      - my_network
+
+  worker3:
+    build:
+      context: .
+      dockerfile: Dockerfile.worker
+    container_name: worker3
+    networks:
+      - my_network
+
+
+  proxy:
+    build:
+      context: .
+      dockerfile: Dockerfile.proxy
+    container_name: proxy
+    ports:
+      - "8080:8080"
+    depends_on:
+      - worker1
+      - worker2
+      - worker3
+    networks:
+      - my_network
+
+networks:
+  my_network:
+      driver: bridge

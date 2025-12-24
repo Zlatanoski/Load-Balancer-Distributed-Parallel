@@ -1,0 +1,8 @@
+<component name="ArtifactManager">
+  <artifact type="jar" name="worker:jar">
+    <output-path>$PROJECT_DIR$/out/artifacts/WORKER</output-path>
+    <root id="archive" name="LoadBalancing-Paralle.jar">
+      <element id="module-output" name="LoadBalancing-Paralle" />
+    </root>
+  </artifact>
+</component>
