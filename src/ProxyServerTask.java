@@ -8,17 +8,17 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 
-public class ProxyServerTask implements Runnable { // reception desk
+public class ProxyServerTask implements Runnable { // reception
     private Socket clientSocket;
     private ProxyServer proxyServer; // reference to the main ProxyServer // we can access directly roundrobinassign method
-
-
+    private AtomicBoolean[] status;
     public ProxyServerTask(Socket clientSocket,ProxyServer proxyServer) {
         //needed an algorithm to assign tasks to workers from the workers list
         this.clientSocket = clientSocket;
         this.proxyServer = proxyServer;
-
+        this.status = proxyServer.workerHealthStatus;
     }
     @Override
     public void run() {
@@ -30,7 +30,31 @@ public class ProxyServerTask implements Runnable { // reception desk
             String requestLine = null; // readLine in order to just read one line until \n
             requestLine = request.readLine();
 
+            if(requestLine.contains("/health")){
+                boolean allNotHealthy = true;
+                for(int i =0; i < status.length; i++ ){
+                    if(status[i].get()){
+                        allNotHealthy = false;
+                    }
+                }
+                PrintWriter output = new PrintWriter(clientSocket.getOutputStream(),true);
+                if(allNotHealthy){
+                    output.println("HTTP/1.1 503 Service Unavailable");
+                }else{
+                    output.println("HTTP/1.1 200 OK");
+
+                }
+
+                return;
+            }
+
             String workerAddress = proxyServer.roundRobinAssign(); // get worker using round robin algorithm
+
+            if(workerAddress == null) {
+                PrintWriter output = new PrintWriter(clientSocket.getOutputStream(),true);
+                output.println("HTTP/1.1 503 Service Unavailable");
+                return;  // we have no healthy worker to forward the request , so we send back 503 error
+            }
 
             sendRequestToWorker(workerAddress, requestLine, clientSocket);
 
@@ -60,9 +84,7 @@ public class ProxyServerTask implements Runnable { // reception desk
         PrintWriter workerOutput = null;
         Socket workerSocket = null; //creates a new TCP connection to that host with that port // Connect to that machine on that port
         try {
-            Logger.debug("Attempting to connect to worker" + workerAddress );
             workerSocket = new Socket(host,port);
-            Logger.debug("Connected to worker " + workerAddress );
             workerOutput = new PrintWriter( workerSocket.getOutputStream(),true);
             workerOutput.println(requestLine);
             workerOutput.println(); // Send request to worker1

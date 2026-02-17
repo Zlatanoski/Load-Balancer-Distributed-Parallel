@@ -5,6 +5,8 @@ services:
       context: .
       dockerfile: Dockerfile.worker
     container_name: worker1
+    environment:
+      - WORKER_PORT=8081
     networks:
       - my_network
 
@@ -15,6 +17,8 @@ services:
       context: .
       dockerfile: Dockerfile.worker
     container_name: worker2
+    environment:
+      - WORKER_PORT=8082
     networks:
       - my_network
 
@@ -23,9 +27,80 @@ services:
       context: .
       dockerfile: Dockerfile.worker
     container_name: worker3
+    environment:
+      - WORKER_PORT=8083
     networks:
       - my_network
 
+  worker4:
+    build:
+      context: .
+      dockerfile: Dockerfile.worker
+    container_name: worker4
+    environment:
+      - WORKER_PORT=8084
+    networks:
+      - my_network
+
+  worker5:
+      build:
+        context: .
+        dockerfile: Dockerfile.worker
+      container_name: worker5
+      environment:
+        - WORKER_PORT=8085
+      networks:
+        - my_network
+
+  worker6:
+      build:
+        context: .
+        dockerfile: Dockerfile.worker
+      container_name: worker6
+      environment:
+        - WORKER_PORT=8086
+      networks:
+        - my_network
+
+  worker7:
+      build:
+        context: .
+        dockerfile: Dockerfile.worker
+      container_name: worker7
+      environment:
+        - WORKER_PORT=8087
+      networks:
+        - my_network
+
+  worker8:
+      build:
+        context: .
+        dockerfile: Dockerfile.worker
+      container_name: worker8
+      environment:
+        - WORKER_PORT=8088
+      networks:
+        - my_network
+
+  worker9:
+      build:
+        context: .
+        dockerfile: Dockerfile.worker
+      container_name: worker9
+      environment:
+        - WORKER_PORT=8089
+      networks:
+        - my_network
+
+  worker10:
+      build:
+        context: .
+        dockerfile: Dockerfile.worker
+      container_name: worker10
+      environment:
+        - WORKER_PORT=8090
+      networks:
+        - my_network
 
   proxy:
     build:
@@ -34,12 +109,12 @@ services:
     container_name: proxy
     ports:
       - "8080:8080"
-    depends_on:
-      - worker1
-      - worker2
-      - worker3
+    environment:
+      - WORKER_ADDRESSES=${WORKER_ADDRESSES:-worker1:8081,worker2:8082,worker3:8083,worker4:8084,worker5:8085,worker6:8086,worker7:8087,worker8:8088,worker9:8089,worker10:8090}
     networks:
       - my_network
+
+
 
 networks:
   my_network:

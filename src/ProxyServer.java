@@ -1,10 +1,17 @@
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.PrintWriter;
+import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.List;
 import java.util.Random;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class ProxyServer {
@@ -15,19 +22,85 @@ public class ProxyServer {
     private ExecutorService threadPool;
     private Random random;
     private AtomicInteger[] requestsCounts;
-
+    private ScheduledExecutorService healthChecker;
+    public AtomicBoolean[] workerHealthStatus; // true if healthy, false if not
 
     public ProxyServer(int port ,List<String> workerServers) throws IOException {
         this.serverSocket = new ServerSocket(port);
         this.workerServers = workerServers;
         this.currentWorkerIndex = 0;
-        this.threadPool = Executors.newFixedThreadPool(9);
-        this.random = random;
+        this.threadPool = Executors.newFixedThreadPool(30);
+        this.random = new Random();
+        this.workerHealthStatus = new AtomicBoolean[workerServers.size()];
+
+        for(int i=0; i < workerHealthStatus.length; i++){
+            workerHealthStatus[i] = new AtomicBoolean(false);
+        }
 
         this.requestsCounts = new AtomicInteger[workerServers.size()];
         for(int i=0; i < workerServers.size(); i++){
             requestsCounts[i] = new AtomicInteger(0); // set all positions of the atomic integer array to 0 // leter for each we increase by 1
         }
+
+
+        this.healthChecker = Executors.newScheduledThreadPool(1); // single thread for health checking meaning that it will check workers sequentially, if we scale to 3 then parallel 3 threads 3 workers.
+        healthChecker.scheduleAtFixedRate(
+                ()-> checkAllWorkers(),0,1, TimeUnit.SECONDS
+        ); // runnable, when to start, period, time unit
+
+    }
+
+    private void checkAllWorkers() {
+        Logger.debug("Checking health !");
+        for(int i =0; i < workerServers.size(); i++){
+            String workerAddress = workerServers.get(i);
+            boolean isHealthy = checkWorkerHealth(workerAddress);
+            boolean wasHealthy = workerHealthStatus[i].getAndSet(isHealthy);
+            if(!isHealthy && wasHealthy){
+                Logger.warn("Worker " + workerAddress + " is not working.");
+            }
+        }
+    }
+
+    private boolean checkWorkerHealth(String workerAddress) {
+        Socket socket = null;
+        String[] parts = workerAddress.split(":");
+        String host = parts[0];
+        int port = Integer.parseInt(parts[1]);
+
+        try {
+
+            socket = new Socket();
+            socket.connect(new InetSocketAddress(host, port), 1000);  // ← 1 second connection timeout!
+            socket.setSoTimeout(5000); //5 sec time wait before reading if there is response (check below at objects readline)
+
+        } catch (IOException e) { // if we are unable to connect to worker at all
+            Logger.debug("Worker " + workerAddress + " connection failed");
+            return false;
+        }
+        try {
+            PrintWriter reqMessage = new PrintWriter(socket.getOutputStream());
+            reqMessage.print("GET /health HTTP/1.1\r\n");
+            reqMessage.print("Host: " + host + "\r\n");
+            reqMessage.print("\r\n");
+            reqMessage.flush();
+
+
+
+            BufferedReader response = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+            String responseMessage = response.readLine();
+            socket.close();
+            if (responseMessage != null && responseMessage.contains("200 OK") ){
+                return true;
+            } else {
+                return false;
+            }
+
+        } catch (IOException e) {
+            Logger.debug("Worker " + workerAddress + " health check failed: " + e.getMessage());
+            return false;
+        }
+
     }
 
 
@@ -39,6 +112,7 @@ public class ProxyServer {
                 Socket clientSocket = serverSocket.accept();
                 ProxyServerTask proxyTask = new ProxyServerTask( clientSocket, this);
                 threadPool.submit(proxyTask);
+
             } catch (IOException e) {
                 Logger.error("Error accepting client connection: " + e.getMessage());
             }
@@ -48,33 +122,53 @@ public class ProxyServer {
         }
 
     }
-    public String randomAssign(){
-        int randomIndex = random.nextInt(workerServers.size());
-        String worker = workerServers.get(randomIndex);
+    public synchronized String randomAssign(){
+        List<Integer> workerIndexes = new java.util.ArrayList<>();
+        for(int i=0; i < workerHealthStatus.length; i++){
+            if(workerHealthStatus[i].get()){
+                workerIndexes.add(i);
+            }
+        }
+        if(workerIndexes.isEmpty()){
+            return null;
+        }
+        int randomIndex = random.nextInt(workerIndexes.size());
+        int workerIndex = workerIndexes.get(randomIndex);
+        String worker = workerServers.get(workerIndex);
         return worker;
     }
-    public String leastConnAssign(){
-        int leastIndex = 0;
+
+    public synchronized String leastConnAssign(){
+        int leastIndex = -1;
         int minCount = Integer.MAX_VALUE;
 
         for(int i=0; i < requestsCounts.length; i++){
-            int count = requestsCounts[i].get();
-            if(count < minCount){
-                minCount = count;
-                leastIndex = i; // get the index that has current minimal number of requests
+            if(workerHealthStatus[i].get()){
+                int count = requestsCounts[i].get();
+                if(count < minCount){
+                    minCount = count;
+                    leastIndex = i;
+                }
             }
         }
-        requestsCounts[leastIndex].incrementAndGet(); // increment the count for that worker
+        if(leastIndex == -1){
+            return null;
+        }
+        requestsCounts[leastIndex].incrementAndGet();
         String worker = workerServers.get(leastIndex);
         return worker;
     }
 
     public synchronized String roundRobinAssign() {
-
-        String worker = workerServers.get(currentWorkerIndex); // we grab the current worker server
-        currentWorkerIndex = (currentWorkerIndex + 1) % workerServers.size(); // auto reset to 0 when end of list
-
-        return worker;
+        for(int i = 0; i < workerServers.size(); i++){
+            int index = (currentWorkerIndex + i) % workerServers.size();
+            if(workerHealthStatus[index].get()){
+                currentWorkerIndex = (index + 1) % workerServers.size();
+                String worker = workerServers.get(index);
+                return worker;
+            }
+        }
+        return null;
     }
 
 

@@ -23,7 +23,6 @@ public class WorkerServerTask implements Runnable{
             ServerSocket serverSocket = null;
         try {
             serverSocket = new ServerSocket(port);
-            Logger.info("Server started on port " + port);
 
             while(true){
                     Socket connection = serverSocket.accept();
@@ -64,6 +63,7 @@ public class WorkerServerTask implements Runnable{
                 response = notFound();
             }
             else if(requestLine.contains("/health")){
+
                 response = getHealth();
             }else if(requestLine.contains("/work")){
                 response = getWork();
@@ -103,7 +103,7 @@ public class WorkerServerTask implements Runnable{
 
     private String getWork(){
         Random random = new Random();
-        int n =  random.nextInt(10);
+        int n =  random.nextInt(10000000);
         int sum = 0;
         for( int i = 0; i < n; i++ ){
             sum += i;
