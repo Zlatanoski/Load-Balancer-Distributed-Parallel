@@ -63,46 +63,28 @@ public class ProxyServer {
     }
 
     private boolean checkWorkerHealth(String workerAddress) {
-        Socket socket = null;
         String[] parts = workerAddress.split(":");
         String host = parts[0];
         int port = Integer.parseInt(parts[1]);
 
         try {
+            Socket socket = new Socket(host, port);
 
-            socket = new Socket();
-            socket.connect(new InetSocketAddress(host, port), 1000);  // ← 1 second connection timeout!
-            socket.setSoTimeout(5000); //5 sec time wait before reading if there is response (check below at objects readline)
+            PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
+            out.print("GET /health HTTP/1.1\r\nHost: " + host + "\r\n\r\n");
+            out.println();
 
-        } catch (IOException e) { // if we are unable to connect to worker at all
-            Logger.debug("Worker " + workerAddress + " connection failed");
-            return false;
-        }
-        try {
-            PrintWriter reqMessage = new PrintWriter(socket.getOutputStream());
-            reqMessage.print("GET /health HTTP/1.1\r\n");
-            reqMessage.print("Host: " + host + "\r\n");
-            reqMessage.print("\r\n");
-            reqMessage.flush();
-
-
-
-            BufferedReader response = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-            String responseMessage = response.readLine();
+            BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+            String response = in.readLine();
             socket.close();
-            if (responseMessage != null && responseMessage.contains("200 OK") ){
-                return true;
-            } else {
-                return false;
-            }
+
+            return response != null && response.contains("200");
 
         } catch (IOException e) {
             Logger.debug("Worker " + workerAddress + " health check failed: " + e.getMessage());
             return false;
         }
-
     }
-
 
     public void start(){
         Logger.info("Proxy Server started on port " + serverSocket.getLocalPort());
@@ -169,6 +151,15 @@ public class ProxyServer {
             }
         }
         return null;
+    }
+
+    //after successfully processed request for the LeastConn algorithm decrease the count by 1 for the requests pending to that worker
+    public synchronized void decrementWorkerCount(String workerAddress){
+        int index = workerServers.indexOf(workerAddress);
+        if(index != -1){
+            requestsCounts[index].decrementAndGet();
+        }
+
     }
 
 

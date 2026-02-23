@@ -23,24 +23,25 @@ public class ProxyServerTask implements Runnable { // reception
     @Override
     public void run() {
 
-        try{
+        String workerAddress = null;
+        try {
             BufferedReader request = null;
             request = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
 
             String requestLine = null; // readLine in order to just read one line until \n
             requestLine = request.readLine();
 
-            if(requestLine.contains("/health")){
+            if (requestLine.contains("/health")) {
                 boolean allNotHealthy = true;
-                for(int i =0; i < status.length; i++ ){
-                    if(status[i].get()){
+                for (int i = 0; i < status.length; i++) {
+                    if (status[i].get()) {
                         allNotHealthy = false;
                     }
                 }
-                PrintWriter output = new PrintWriter(clientSocket.getOutputStream(),true);
-                if(allNotHealthy){
+                PrintWriter output = new PrintWriter(clientSocket.getOutputStream(), true);
+                if (allNotHealthy) {
                     output.println("HTTP/1.1 503 Service Unavailable");
-                }else{
+                } else {
                     output.println("HTTP/1.1 200 OK");
 
                 }
@@ -48,21 +49,24 @@ public class ProxyServerTask implements Runnable { // reception
                 return;
             }
 
-            String workerAddress = proxyServer.roundRobinAssign(); // get worker using round robin algorithm
+            workerAddress = proxyServer.roundRobinAssign();
 
-            if(workerAddress == null) {
-                PrintWriter output = new PrintWriter(clientSocket.getOutputStream(),true);
+            if (workerAddress == null) {
+                PrintWriter output = new PrintWriter(clientSocket.getOutputStream(), true);
                 output.println("HTTP/1.1 503 Service Unavailable");
-                return;  // we have no healthy worker to forward the request , so we send back 503 error
+
+                return;
+                // we have no healthy worker to forward the request , so we send back 503 error
             }
 
             sendRequestToWorker(workerAddress, requestLine, clientSocket);
 
-        }catch(IOException e){
-            Logger.error("Error processing the request:" + e.getMessage()  );
-        }finally{
+        } catch (IOException e) {
+            Logger.error("Error processing the request:" + e.getMessage());
+        } finally {
+            // proxyServer.decrementWorkerCount(workerAddress); // only when using LCA algorithm in order to decrease the request counts of worker after request processed
             try {
-                if(clientSocket != null){
+                if (clientSocket != null) {
                     clientSocket.close();
                 }
             } catch (IOException e) {
@@ -70,11 +74,11 @@ public class ProxyServerTask implements Runnable { // reception
             }
 
         }
-            // accepting connection from client
-            //buffered reader since we get only bits
-            // getInputStream bytes -> InputStreamReader chars -> BufferedReader strings
+        // accepting connection from client
+        //buffered reader since we get only bits
+        // getInputStream bytes -> InputStreamReader chars -> BufferedReader strings
 
-            //method to forward request to the chosen worker server
+        //method to forward request to the chosen worker server
     }
 
     private void sendRequestToWorker(String workerAddress, String requestLine, Socket clientSocket) { //accepts also client socket since needed again for sending back response

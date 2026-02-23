@@ -1,8 +1,8 @@
 === Load Balancer Performance Testing ===
-Start time: Tue Feb 17 06:45:00 PM CET 2026
+Start time: Mon Feb 23 06:41:22 PM CET 2026
 
 Test: Sequential (1000 requests)
-Duration: 8s | Throughput: 125 req/s
+Duration: 7s | Throughput: 142 req/s
 
 Concurrency=2 (2000 total requests)
 Duration: 7s | Throughput: 285 req/s
@@ -11,40 +11,40 @@ Concurrency=4 (4000 total requests)
 Duration: 8s | Throughput: 500 req/s
 
 Concurrency=6 (6000 total requests)
-Duration: 8s | Throughput: 750 req/s
+Duration: 7s | Throughput: 857 req/s
 
 Concurrency=8 (8000 total requests)
 Duration: 10s | Throughput: 800 req/s
 
 Concurrency=10 (10000 total requests)
-Duration: 12s | Throughput: 833 req/s
+Duration: 11s | Throughput: 909 req/s
 
 Concurrency=12 (12000 total requests)
-Duration: 13s | Throughput: 923 req/s
+Duration: 14s | Throughput: 857 req/s
 
 Concurrency=14 (14000 total requests)
 Duration: 15s | Throughput: 933 req/s
 
 Concurrency=16 (16000 total requests)
-Duration: 16s | Throughput: 1000 req/s
+Duration: 15s | Throughput: 1066 req/s
 
 Concurrency=18 (18000 total requests)
 Duration: 18s | Throughput: 1000 req/s
 
 Concurrency=20 (20000 total requests)
-Duration: 19s | Throughput: 1052 req/s
+Duration: 18s | Throughput: 1111 req/s
 
 Concurrency=25 (25000 total requests)
-Duration: 23s | Throughput: 1086 req/s
+Duration: 22s | Throughput: 1136 req/s
 
 Concurrency=30 (30000 total requests)
-Duration: 28s | Throughput: 1071 req/s
+Duration: 30s | Throughput: 1000 req/s
 
 Concurrency=40 (40000 total requests)
-Duration: 36s | Throughput: 1111 req/s
+Duration: 39s | Throughput: 1025 req/s
 
 Concurrency=50 (50000 total requests)
-Duration: 45s | Throughput: 1111 req/s
+Duration: 51s | Throughput: 980 req/s
 
 === Testing Complete ===
-End time: Tue Feb 17 06:49:26 PM CET 2026
+End time: Mon Feb 23 06:45:54 PM CET 2026
