@@ -84,18 +84,12 @@ public class WorkerServerTask implements Runnable{
 
         }
 
-
-
     }
 
     private String getHealth(){
 
-        return "HTTP/1.1 200 OK\r\n" +
-                "Content-Type: text/plain\r\n" +
-                "Content-Length: 3\r\n" +
-                "Connection: close\r\n" +
-                "\r\n" +
-                "OK\n";
+        return "HTTP/1.1 200 OK\n\n";
+
     }
 
     private String getWork(){
@@ -106,20 +100,11 @@ public class WorkerServerTask implements Runnable{
             sum += i;
         }
 
-        return "HTTP/1.1 200 OK\r\n" +
-                "Content-Type: text/plain\r\n" +
-                "Content-Length: 3\r\n" +
-                "Connection: close\r\n" +
-                "\r\n" +
-                "OK\n";
+        return "HTTP/1.1 200 OK\n\n";
+
     }
     private String notFound() {
-        return "HTTP/1.1 404 Not Found\r\n" +
-                "Content-Type: text/plain\r\n" +
-                "Content-Length: 9\r\n" +
-                "Connection: close\r\n" +
-                "\r\n" +
-                "Not Found\n";
+        return "HTTP/1.1 404 Not Found\n\n";
     }
 
 

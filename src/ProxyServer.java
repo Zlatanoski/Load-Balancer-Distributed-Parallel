@@ -71,8 +71,8 @@ public class ProxyServer {
             Socket socket = new Socket(host, port);
 
             PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
-            out.print("GET /health HTTP/1.1\r\nHost: " + host + "\r\n\r\n");
-            out.println();
+            out.print("GET /health HTTP/1.1\nHost: " + host + "\n\n");
+            out.flush();
 
             BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
             String response = in.readLine();

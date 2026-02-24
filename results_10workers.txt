@@ -44,3 +44,7 @@ Concurrency=40 (40000 total requests)
 Duration: 42s | Throughput: 952 req/s
 
 Concurrency=50 (50000 total requests)
+Duration: 52s | Throughput: 961 req/s
+
+=== Testing Complete ===
+End time: Mon Feb 23 06:51:06 PM CET 2026
